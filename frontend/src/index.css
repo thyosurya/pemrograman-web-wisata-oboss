@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-cream-50 text-gray-900;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-nature-green-600 hover:bg-nature-green-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-ocean-blue-600 hover:bg-ocean-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-nature-green-600 text-nature-green-600 hover:bg-nature-green-600 hover:text-white font-semibold py-2.5 px-6 rounded-lg transition-all duration-200 hover:shadow-md;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-nature-green-500 focus:border-transparent outline-none transition-all text-gray-900 bg-white;
+  }
+  
+  .page-title {
+    @apply text-4xl md:text-5xl font-bold text-gray-800 mb-4;
+  }
+  
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-gray-800 mb-3;
+  }
+  
+  .admin-card {
+    @apply bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200;
+  }
+}
