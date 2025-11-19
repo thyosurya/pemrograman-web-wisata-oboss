@@ -266,7 +266,7 @@ pbo-tasya/
 
 ## 👥 Contributors
 
-- Developer: [Your Name]
+- Developer: Thyo Surya
 - Design: Inspired by modern tourism websites
 
 ## 📄 License
