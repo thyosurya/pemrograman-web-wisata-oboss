@@ -20,6 +20,10 @@ Route::middleware('api')->group(function () {
     // Check booking by token
     Route::get('pemesanan/check/{token}', [PemesananController::class, 'checkByToken']);
     
+    // Check-in dan Check-out
+    Route::post('pemesanan/{id}/check-in', [PemesananController::class, 'checkIn']);
+    Route::post('pemesanan/{id}/check-out', [PemesananController::class, 'checkOut']);
+    
     // Laporan Routes
     Route::get('laporan', [LaporanController::class, 'getLaporan']);
     Route::get('laporan/ringkasan', [LaporanController::class, 'getRingkasan']);

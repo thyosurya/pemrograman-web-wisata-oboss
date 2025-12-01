@@ -13,6 +13,15 @@ class KamarVillaController extends Controller
     public function index()
     {
         $kamarVilla = KamarVilla::all();
+        
+        // Tambahkan informasi jumlah pemesanan aktif per kamar
+        $kamarVilla->each(function($kamar) {
+            $kamar->jumlah_pemesanan_aktif = $kamar->pemesanan()
+                ->where('is_checked_in', true)
+                ->where('is_checked_out', false)
+                ->count();
+        });
+        
         return response()->json($kamarVilla);
     }
 

@@ -57,7 +57,14 @@ class PemesananController extends Controller
         $validated['booking_token'] = strtoupper(substr(uniqid(), -8));
 
         $pemesanan = Pemesanan::create($validated);
-        return response()->json($pemesanan, 201);
+
+        // Jika langsung confirmed, kurangi ketersediaan kamar
+        if (isset($validated['status_pemesanan']) && $validated['status_pemesanan'] === 'confirmed') {
+            $kamarVilla->jumlah_tersedia -= 1;
+            $kamarVilla->save();
+        }
+
+        return response()->json($pemesanan->load(['wisatawan', 'kamarVilla']), 201);
     }
 
     /**
@@ -74,7 +81,8 @@ class PemesananController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $pemesanan = Pemesanan::findOrFail($id);
+        $pemesanan = Pemesanan::with('kamarVilla')->findOrFail($id);
+        $statusLama = $pemesanan->status_pemesanan;
         
         $validated = $request->validate([
             'tgl_checkin' => 'sometimes|required|date',
@@ -93,8 +101,30 @@ class PemesananController extends Controller
             $validated['total_harga'] = $pemesanan->harga_permalam * $jumlahMalam;
         }
 
+        // Handle perubahan status untuk update ketersediaan kamar
+        if (isset($validated['status_pemesanan']) && $validated['status_pemesanan'] !== $statusLama) {
+            $kamar = $pemesanan->kamarVilla;
+            
+            // Dari pending ke confirmed: kurangi ketersediaan
+            if ($statusLama === 'pending' && $validated['status_pemesanan'] === 'confirmed') {
+                if ($kamar->jumlah_tersedia < 1) {
+                    return response()->json(['message' => 'Kamar tidak tersedia'], 400);
+                }
+                $kamar->jumlah_tersedia -= 1;
+                $kamar->save();
+            }
+            
+            // Dari confirmed ke cancelled: tambah ketersediaan kembali
+            if ($statusLama === 'confirmed' && $validated['status_pemesanan'] === 'cancelled') {
+                $kamar->jumlah_tersedia += 1;
+                $kamar->save();
+            }
+            
+            // Dari pending ke cancelled: tidak perlu update ketersediaan
+        }
+
         $pemesanan->update($validated);
-        return response()->json($pemesanan);
+        return response()->json($pemesanan->load(['wisatawan', 'kamarVilla']));
     }
 
     /**
@@ -102,7 +132,15 @@ class PemesananController extends Controller
      */
     public function destroy($id)
     {
-        $pemesanan = Pemesanan::findOrFail($id);
+        $pemesanan = Pemesanan::with('kamarVilla')->findOrFail($id);
+        
+        // Jika pemesanan confirmed atau checked-in tapi belum check-out, kembalikan ketersediaan
+        if (($pemesanan->status_pemesanan === 'confirmed' || $pemesanan->is_checked_in) && !$pemesanan->is_checked_out) {
+            $kamar = $pemesanan->kamarVilla;
+            $kamar->jumlah_tersedia += 1;
+            $kamar->save();
+        }
+        
         $pemesanan->delete();
         return response()->json(['message' => 'Pemesanan deleted successfully'], 200);
     }
@@ -121,5 +159,86 @@ class PemesananController extends Controller
         }
 
         return response()->json($pemesanan);
+    }
+
+    /**
+     * Check-in: Mengurangi ketersediaan kamar
+     */
+    public function checkIn($id)
+    {
+        $pemesanan = Pemesanan::with(['kamarVilla'])->findOrFail($id);
+
+        // Validasi status
+        if ($pemesanan->is_checked_in) {
+            return response()->json(['message' => 'Pemesanan sudah check-in'], 400);
+        }
+
+        if ($pemesanan->status_pemesanan !== 'confirmed') {
+            return response()->json(['message' => 'Pemesanan harus dikonfirmasi terlebih dahulu'], 400);
+        }
+
+        // Cek ketersediaan kamar
+        $kamar = $pemesanan->kamarVilla;
+        
+        // Jika belum pernah dikurangi ketersediaannya (status bukan confirmed), kurangi sekarang
+        $needToReduceAvailability = false;
+        if ($pemesanan->status_pemesanan !== 'confirmed') {
+            if ($kamar->jumlah_tersedia < 1) {
+                return response()->json(['message' => 'Kamar tidak tersedia'], 400);
+            }
+            $needToReduceAvailability = true;
+        }
+
+        // Update pemesanan
+        $pemesanan->is_checked_in = true;
+        $pemesanan->actual_checkin = now();
+        $pemesanan->status_pemesanan = 'confirmed'; // Pastikan statusnya confirmed
+        $pemesanan->save();
+
+        // Kurangi ketersediaan kamar jika belum pernah dikurangi
+        if ($needToReduceAvailability) {
+            $kamar->jumlah_tersedia -= 1;
+            $kamar->save();
+        }
+
+        return response()->json([
+            'message' => 'Check-in berhasil',
+            'pemesanan' => $pemesanan,
+            'kamar_tersedia' => $kamar->jumlah_tersedia
+        ]);
+    }
+
+    /**
+     * Check-out: Menambah ketersediaan kamar
+     */
+    public function checkOut($id)
+    {
+        $pemesanan = Pemesanan::with(['kamarVilla'])->findOrFail($id);
+
+        // Validasi status
+        if (!$pemesanan->is_checked_in) {
+            return response()->json(['message' => 'Pemesanan belum check-in'], 400);
+        }
+
+        if ($pemesanan->is_checked_out) {
+            return response()->json(['message' => 'Pemesanan sudah check-out'], 400);
+        }
+
+        // Update pemesanan
+        $pemesanan->is_checked_out = true;
+        $pemesanan->actual_checkout = now();
+        $pemesanan->status_pemesanan = 'completed';
+        $pemesanan->save();
+
+        // Tambah ketersediaan kamar
+        $kamar = $pemesanan->kamarVilla;
+        $kamar->jumlah_tersedia += 1;
+        $kamar->save();
+
+        return response()->json([
+            'message' => 'Check-out berhasil',
+            'pemesanan' => $pemesanan,
+            'kamar_tersedia' => $kamar->jumlah_tersedia
+        ]);
     }
 }

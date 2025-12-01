@@ -322,6 +322,88 @@ Delete booking by ID.
 
 **Response:** `200 OK`
 
+### 6. Check-In (Mengurangi Ketersediaan Kamar)
+Proses check-in yang secara otomatis mengurangi ketersediaan kamar.
+
+**Endpoint:** `POST /api/pemesanan/{id}/check-in`
+
+**Requirements:**
+- Pemesanan harus berstatus `confirmed`
+- Belum pernah check-in sebelumnya
+- Kamar masih tersedia (jumlah_tersedia >= 1)
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Check-in berhasil",
+  "pemesanan": {
+    "id_pemesanan": 1,
+    "is_checked_in": true,
+    "actual_checkin": "2025-12-01T14:30:00.000000Z",
+    "status_pemesanan": "confirmed",
+    ...
+  },
+  "kamar_tersedia": 4
+}
+```
+
+**Error Response:** `400 Bad Request`
+```json
+{
+  "message": "Pemesanan sudah check-in"
+}
+```
+atau
+```json
+{
+  "message": "Pemesanan harus dikonfirmasi terlebih dahulu"
+}
+```
+atau
+```json
+{
+  "message": "Kamar tidak tersedia"
+}
+```
+
+### 7. Check-Out (Menambah Ketersediaan Kamar)
+Proses check-out yang secara otomatis menambah ketersediaan kamar dan mengubah status menjadi completed.
+
+**Endpoint:** `POST /api/pemesanan/{id}/check-out`
+
+**Requirements:**
+- Pemesanan sudah check-in
+- Belum pernah check-out sebelumnya
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Check-out berhasil",
+  "pemesanan": {
+    "id_pemesanan": 1,
+    "is_checked_in": true,
+    "is_checked_out": true,
+    "actual_checkout": "2025-12-03T11:00:00.000000Z",
+    "status_pemesanan": "completed",
+    ...
+  },
+  "kamar_tersedia": 5
+}
+```
+
+**Error Response:** `400 Bad Request`
+```json
+{
+  "message": "Pemesanan belum check-in"
+}
+```
+atau
+```json
+{
+  "message": "Pemesanan sudah check-out"
+}
+```
+
 ---
 
 ## Status Codes

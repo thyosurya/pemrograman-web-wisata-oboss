@@ -27,6 +27,10 @@ class Pemesanan extends Model
         'booking_token',
         'bukti_pembayaran',
         'catatan',
+        'is_checked_in',
+        'is_checked_out',
+        'actual_checkin',
+        'actual_checkout',
     ];
 
     protected $casts = [
@@ -35,6 +39,10 @@ class Pemesanan extends Model
         'tgl_checkout' => 'date',
         'harga_permalam' => 'decimal:2',
         'total_harga' => 'decimal:2',
+        'is_checked_in' => 'boolean',
+        'is_checked_out' => 'boolean',
+        'actual_checkin' => 'datetime',
+        'actual_checkout' => 'datetime',
     ];
 
     // Relationships
