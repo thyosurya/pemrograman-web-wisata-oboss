@@ -11,13 +11,14 @@ interface Room {
   kapasitas: number;
   jumlah_tersedia: number;
   status_aktif: boolean;
-  foto_utama: string;
+  foto_utama: string | null;
 }
 
 export default function AdminKamarPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -32,6 +33,17 @@ export default function AdminKamarPage() {
     foto_utama: '',
   });
 
+  console.log('AdminKamarPage rendering, rooms:', rooms.length, 'loading:', loading);
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   useEffect(() => {
     fetchRooms();
   }, []);
@@ -40,20 +52,29 @@ export default function AdminKamarPage() {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching rooms...');
       const data = await api.kamarVilla.getAll();
+      console.log('Rooms data:', data);
       setRooms(data);
     } catch (err) {
       setError('Gagal memuat data kamar. Silakan coba lagi.');
       console.error('Error fetching rooms:', err);
     } finally {
       setLoading(false);
+      console.log('Loading finished');
     }
   };
 
   const handleOpenModal = (room?: Room) => {
     if (room) {
       setEditingRoom(room);
-      setFormData(room);
+      setFormData({
+        ...room,
+        // Ensure proper foto_utama URL for existing rooms
+        foto_utama: room.foto_utama && room.foto_utama.startsWith('http') 
+          ? room.foto_utama 
+          : room.foto_utama ? `http://localhost:8000/${room.foto_utama}` : ''
+      });
       setPhotoFile(null);
     } else {
       setEditingRoom(null);
@@ -134,6 +155,9 @@ export default function AdminKamarPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    
     try {
       if (editingRoom) {
         // Update existing room
@@ -145,18 +169,31 @@ export default function AdminKamarPage() {
         formDataToSend.append('jumlah_tersedia', formData.jumlah_tersedia.toString());
         formDataToSend.append('status_aktif', formData.status_aktif ? '1' : '0');
         
+        // Method spoofing untuk Laravel (PUT via POST)
+        formDataToSend.append('_method', 'PUT');
+        
         if (photoFile) {
+          // Ada file foto baru yang di-upload
           formDataToSend.append('foto_utama', photoFile);
-        } else if (formData.foto_utama && !formData.foto_utama.startsWith('data:')) {
+        } else if (formData.foto_utama && 
+                   !formData.foto_utama.startsWith('data:') && 
+                   !formData.foto_utama.includes('localhost:8000') &&
+                   !formData.foto_utama.startsWith('uploads/')) {
+          // User memasukkan URL foto baru secara manual
           formDataToSend.append('foto_utama_url', formData.foto_utama);
         }
+        // Jika tidak ada perubahan foto, backend akan tetap menggunakan foto lama
 
         const response = await fetch(`http://localhost:8000/api/kamar-villa/${editingRoom.id_kamar}`, {
-          method: 'PUT',
+          method: 'POST', // Gunakan POST dengan _method spoofing
           body: formDataToSend,
         });
 
-        if (!response.ok) throw new Error('Failed to update room');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Update error:', errorData);
+          throw new Error(errorData.message || 'Gagal mengupdate kamar');
+        }
         const updatedRoom = await response.json();
         
         setRooms((prev) =>
@@ -164,6 +201,7 @@ export default function AdminKamarPage() {
             room.id_kamar === editingRoom.id_kamar ? updatedRoom : room
           )
         );
+        setSuccessMessage('Kamar berhasil diupdate!');
       } else {
         // Add new room
         const formDataToSend = new FormData();
@@ -185,15 +223,24 @@ export default function AdminKamarPage() {
           body: formDataToSend,
         });
 
-        if (!response.ok) throw new Error('Failed to create room');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Create error:', errorData);
+          throw new Error(errorData.message || 'Gagal menambahkan kamar');
+        }
         const newRoom = await response.json();
         
         setRooms((prev) => [...prev, newRoom]);
+        setSuccessMessage('Kamar berhasil ditambahkan!');
       }
       handleCloseModal();
       fetchRooms(); // Refresh to get updated data with proper image URLs
-    } catch (err) {
-      alert('Gagal menyimpan data kamar. Silakan coba lagi.');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      const errorMsg = err.message || 'Gagal menyimpan data kamar. Silakan coba lagi.';
+      setError(errorMsg);
       console.error('Error saving room:', err);
     }
   };
@@ -242,74 +289,88 @@ export default function AdminKamarPage() {
 
         {error && (
           <div className="mb-6">
-            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg flex justify-between items-center">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-6">
+            <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg flex justify-between items-center">
+              <span>{successMessage}</span>
+              <button onClick={() => setSuccessMessage(null)} className="text-green-500 hover:text-green-700">
+                <X size={20} />
+              </button>
             </div>
           </div>
         )}
 
         {/* Rooms Grid */}
         {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {rooms.map((room) => (
-            <div key={room.id_kamar} className="card">
-              <img
-                src={room.foto_utama.startsWith('http') ? room.foto_utama : `http://localhost:8000/${room.foto_utama}`}
-                alt={room.tipe_kamar}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-lg text-gray-800">
-                    {room.tipe_kamar}
-                  </h3>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      room.status_aktif
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {room.status_aktif ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </div>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                  {room.deskripsi}
-                </p>
-                <div className="space-y-2 text-sm mb-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Harga/malam</span>
-                    <span className="font-semibold text-nature-green-600">
-                      Rp {room.harga_permalam.toLocaleString('id-ID')}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rooms.map((room) => (
+              <div key={room.id_kamar} className="card">
+                <img
+                  src={room.foto_utama && room.foto_utama.startsWith('http') ? room.foto_utama : room.foto_utama ? `http://localhost:8000/${room.foto_utama}` : 'https://via.placeholder.com/400x300?text=No+Image'}
+                  alt={room.tipe_kamar}
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-bold text-lg text-gray-800">
+                      {room.tipe_kamar}
+                    </h3>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        room.status_aktif
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {room.status_aktif ? 'Aktif' : 'Nonaktif'}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Kapasitas</span>
-                    <span className="font-semibold">{room.kapasitas} orang</span>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {room.deskripsi}
+                  </p>
+                  <div className="space-y-2 text-sm mb-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Harga/malam</span>
+                      <span className="font-semibold text-nature-green-600">
+                        {formatCurrency(room.harga_permalam)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Kapasitas</span>
+                      <span className="font-semibold">{room.kapasitas} orang</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tersedia</span>
+                      <span className="font-semibold">{room.jumlah_tersedia} unit</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tersedia</span>
-                    <span className="font-semibold">{room.jumlah_tersedia} unit</span>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleOpenModal(room)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(room.id_kamar)}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors"
+                    >
+                      Hapus
+                    </button>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleOpenModal(room)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(room.id_kamar)}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Hapus
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
 
         {!loading && !error && rooms.length === 0 && (

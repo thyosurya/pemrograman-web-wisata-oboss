@@ -98,7 +98,7 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="bg-white py-16">
+      {/* <section className="bg-white py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12 text-center">
             Tim Kami
@@ -144,7 +144,7 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-nature-green-600 to-ocean-blue-600 text-white py-16">

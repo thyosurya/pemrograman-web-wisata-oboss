@@ -6,6 +6,15 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../services/api';
 
+// Format currency helper
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
+
 interface Room {
   id_kamar: number;
   tipe_kamar: string;
@@ -230,7 +239,7 @@ export default function RoomDetailPage() {
               <div className="mb-8 pb-6 border-b">
                 <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Harga Mulai Dari</div>
                 <div className="text-4xl font-bold text-nature-green-600">
-                  Rp {room.harga_permalam.toLocaleString('id-ID')}
+                  {formatCurrency(room.harga_permalam)}
                 </div>
                 <div className="text-gray-600 mt-1">per malam</div>
               </div>
@@ -344,14 +353,14 @@ export default function RoomDetailPage() {
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <div className="flex justify-between mb-2 text-gray-700">
                       <span>
-                        Rp {room.harga_permalam.toLocaleString('id-ID')} x {nights} malam
+                        {formatCurrency(room.harga_permalam)} x {nights} malam
                       </span>
-                      <span>Rp {totalPrice.toLocaleString('id-ID')}</span>
+                      <span>{formatCurrency(totalPrice)}</span>
                     </div>
                     <div className="border-t pt-2 flex justify-between font-bold text-lg">
                       <span>Total</span>
                       <span className="text-nature-green-600">
-                        Rp {totalPrice.toLocaleString('id-ID')}
+                        {formatCurrency(totalPrice)}
                       </span>
                     </div>
                   </div>

@@ -47,6 +47,15 @@ export default function CheckoutPage() {
   });
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   // Redirect if no booking data
   if (!bookingData || !room) {
     return (
@@ -262,14 +271,14 @@ export default function CheckoutPage() {
               <div className="border-t-2 pt-6">
                 <div className="flex justify-between mb-3 text-gray-700">
                   <span>
-                    Rp {room.harga_permalam.toLocaleString('id-ID')} x {nights} malam
+                    {formatCurrency(room.harga_permalam)} x {nights} malam
                   </span>
-                  <span className="font-semibold">Rp {totalPrice.toLocaleString('id-ID')}</span>
+                  <span className="font-semibold">{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-xl bg-nature-green-50 p-4 rounded-lg">
                   <span className="text-gray-800">Total</span>
                   <span className="text-nature-green-600">
-                    Rp {totalPrice.toLocaleString('id-ID')}
+                    {formatCurrency(totalPrice)}
                   </span>
                 </div>
               </div>

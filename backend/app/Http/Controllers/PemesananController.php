@@ -105,8 +105,13 @@ class PemesananController extends Controller
         if (isset($validated['status_pemesanan']) && $validated['status_pemesanan'] !== $statusLama) {
             $kamar = $pemesanan->kamarVilla;
             
-            // Dari pending ke confirmed: kurangi ketersediaan
-            if ($statusLama === 'pending' && $validated['status_pemesanan'] === 'confirmed') {
+            // Tentukan apakah status lama "mengunci" kamar (occupied)
+            $wasOccupied = in_array($statusLama, ['confirmed']);
+            // Tentukan apakah status baru "mengunci" kamar (occupied)
+            $willBeOccupied = in_array($validated['status_pemesanan'], ['confirmed']);
+            
+            // Jika dari tidak occupied menjadi occupied: kurangi ketersediaan
+            if (!$wasOccupied && $willBeOccupied) {
                 if ($kamar->jumlah_tersedia < 1) {
                     return response()->json(['message' => 'Kamar tidak tersedia'], 400);
                 }
@@ -114,13 +119,14 @@ class PemesananController extends Controller
                 $kamar->save();
             }
             
-            // Dari confirmed ke cancelled: tambah ketersediaan kembali
-            if ($statusLama === 'confirmed' && $validated['status_pemesanan'] === 'cancelled') {
-                $kamar->jumlah_tersedia += 1;
-                $kamar->save();
+            // Jika dari occupied menjadi tidak occupied: tambah ketersediaan
+            if ($wasOccupied && !$willBeOccupied) {
+                // Hanya tambah jika belum pernah check-out (untuk menghindari double penambahan)
+                if (!$pemesanan->is_checked_out) {
+                    $kamar->jumlah_tersedia += 1;
+                    $kamar->save();
+                }
             }
-            
-            // Dari pending ke cancelled: tidak perlu update ketersediaan
         }
 
         $pemesanan->update($validated);
