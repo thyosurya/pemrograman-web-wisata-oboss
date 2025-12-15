@@ -38,6 +38,9 @@ class PemesananController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('uploads/bukti_pembayaran'), $filename);
             $validated['bukti_pembayaran'] = 'uploads/bukti_pembayaran/' . $filename;
+            
+            // AUTO-CONFIRM: Ketika user upload bukti pembayaran, langsung confirmed
+            $validated['status_pemesanan'] = 'confirmed';
         }
 
         // Calculate jumlah_malam and total_harga
@@ -105,9 +108,8 @@ class PemesananController extends Controller
         if (isset($validated['status_pemesanan']) && $validated['status_pemesanan'] !== $statusLama) {
             $kamar = $pemesanan->kamarVilla;
             
-            // Tentukan apakah status lama "mengunci" kamar (occupied)
+            // Status yang "mengunci" kamar (occupied)
             $wasOccupied = in_array($statusLama, ['confirmed']);
-            // Tentukan apakah status baru "mengunci" kamar (occupied)
             $willBeOccupied = in_array($validated['status_pemesanan'], ['confirmed']);
             
             // Jika dari tidak occupied menjadi occupied: kurangi ketersediaan
@@ -119,13 +121,10 @@ class PemesananController extends Controller
                 $kamar->save();
             }
             
-            // Jika dari occupied menjadi tidak occupied: tambah ketersediaan
+            // DYNAMIC INVENTORY: Jika dari occupied menjadi completed/cancelled: kembalikan ketersediaan
             if ($wasOccupied && !$willBeOccupied) {
-                // Hanya tambah jika belum pernah check-out (untuk menghindari double penambahan)
-                if (!$pemesanan->is_checked_out) {
-                    $kamar->jumlah_tersedia += 1;
-                    $kamar->save();
-                }
+                $kamar->jumlah_tersedia += 1;
+                $kamar->save();
             }
         }
 

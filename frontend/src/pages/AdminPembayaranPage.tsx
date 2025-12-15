@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, DollarSign, CheckCircle, XCircle, Clock, Eye, Image } from 'lucide-react';
+import { Search, DollarSign, CheckCircle, XCircle, Clock, Eye, Image, Edit2 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import { api } from '../services/api';
 
@@ -39,6 +39,7 @@ export default function AdminPembayaranPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<{ id: number; status: string } | null>(null);
 
   // Statistics
   const [stats, setStats] = useState({
@@ -164,6 +165,37 @@ export default function AdminPembayaranPage() {
       month: 'short',
       year: 'numeric',
     });
+  };
+
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    if (!confirm(`Apakah Anda yakin ingin mengubah status menjadi "${newStatus}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/pemesanan/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status_pemesanan: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update status');
+      }
+
+      // Refresh data
+      await fetchBookings();
+      setEditingStatus(null);
+      alert('Status berhasil diubah! Ketersediaan kamar telah diperbarui.');
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+      console.error('Error updating status:', err);
+    }
   };
 
   if (loading) {
@@ -323,12 +355,15 @@ export default function AdminPembayaranPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredBookings.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                       Tidak ada data pembayaran ditemukan
                     </td>
                   </tr>
@@ -385,6 +420,42 @@ export default function AdminPembayaranPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(booking.status_pemesanan)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {editingStatus?.id === booking.id_pemesanan ? (
+                          <div className="flex items-center space-x-2">
+                            <select
+                              value={editingStatus.status}
+                              onChange={(e) => setEditingStatus({ id: booking.id_pemesanan, status: e.target.value })}
+                              className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-nature-green-500"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                            <button
+                              onClick={() => handleStatusChange(booking.id_pemesanan, editingStatus.status)}
+                              className="px-3 py-1 bg-nature-green-600 text-white text-xs rounded hover:bg-nature-green-700 transition-colors"
+                            >
+                              Simpan
+                            </button>
+                            <button
+                              onClick={() => setEditingStatus(null)}
+                              className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400 transition-colors"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setEditingStatus({ id: booking.id_pemesanan, status: booking.status_pemesanan })}
+                            className="flex items-center space-x-1 text-ocean-blue-600 hover:text-ocean-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            <span className="text-xs">Ubah Status</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
