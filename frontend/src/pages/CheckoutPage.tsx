@@ -4,6 +4,7 @@ import { CreditCard, Building2, Upload, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../services/api';
+import { formatCurrency, formatNumber } from '../utils/currency';
 
 type PaymentMethod = 'bank_transfer' | 'ewallet';
 
@@ -46,15 +47,6 @@ export default function CheckoutPage() {
     address: '',
   });
   const [currentStep, setCurrentStep] = useState(1);
-
-  // Format currency helper
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // Redirect if no booking data
   if (!bookingData || !room) {
@@ -440,7 +432,7 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <div className="text-nature-green-600 font-bold text-lg mt-2">
-                        Total: Rp {totalPrice.toLocaleString('id-ID')}
+                        Total: {formatCurrency(totalPrice)}
                       </div>
                     </div>
                   </div>

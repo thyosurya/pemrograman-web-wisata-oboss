@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Upload, Plus } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import { api } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 interface Room {
   id_kamar: number;
@@ -34,15 +35,6 @@ export default function AdminKamarPage() {
   });
 
   console.log('AdminKamarPage rendering, rooms:', rooms.length, 'loading:', loading);
-
-  // Format currency helper
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
 
   useEffect(() => {
     fetchRooms();

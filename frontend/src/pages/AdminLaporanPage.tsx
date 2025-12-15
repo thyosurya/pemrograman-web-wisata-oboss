@@ -12,6 +12,8 @@ import {
   Moon,
   Percent
 } from 'lucide-react';
+import { api } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 interface LaporanData {
   periode: {
@@ -96,6 +98,7 @@ export default function AdminLaporanPage() {
     try {
       const response = await fetch('http://localhost:8000/api/laporan/ringkasan');
       const data = await response.json();
+      console.log('Ringkasan Data:', data);
       setRingkasan(data);
     } catch (error) {
       console.error('Error fetching ringkasan:', error);
@@ -109,6 +112,7 @@ export default function AdminLaporanPage() {
         `http://localhost:8000/api/laporan?start_date=${periode.start_date}&end_date=${periode.end_date}`
       );
       const data = await response.json();
+      console.log('Laporan Data:', data);
       setLaporanData(data);
     } catch (error) {
       console.error('Error fetching laporan:', error);
@@ -164,14 +168,6 @@ export default function AdminLaporanPage() {
       cancelled: 'bg-red-100 text-red-800',
     };
     return badges[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(value);
   };
 
   const formatDate = (dateString: string) => {

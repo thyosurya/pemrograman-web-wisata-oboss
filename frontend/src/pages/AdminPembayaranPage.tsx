@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, DollarSign, CheckCircle, XCircle, Clock, Eye, Image, Edit2 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import { api } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 interface Wisatawan {
   id_wisatawan: number;
@@ -78,7 +79,7 @@ export default function AdminPembayaranPage() {
     const stats = {
       totalRevenue: data
         .filter((b) => b.status_pemesanan === 'completed')
-        .reduce((sum, b) => sum + Number(b.total_harga), 0),
+        .reduce((sum, b) => sum + (Number(b.total_harga) || 0), 0),
       pendingPayments: data.filter((b) => b.status_pemesanan === 'pending').length,
       confirmedPayments: data.filter((b) => b.status_pemesanan === 'confirmed').length,
       completedPayments: data.filter((b) => b.status_pemesanan === 'completed').length,
@@ -149,14 +150,6 @@ export default function AdminPembayaranPage() {
         <span>{config.label}</span>
       </span>
     );
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
   };
 
   const formatDate = (dateString: string) => {

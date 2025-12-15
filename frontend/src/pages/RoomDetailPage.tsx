@@ -5,15 +5,7 @@ import { differenceInDays } from 'date-fns';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../services/api';
-
-// Format currency helper
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
+import { formatCurrency } from '../utils/currency';
 
 interface Room {
   id_kamar: number;

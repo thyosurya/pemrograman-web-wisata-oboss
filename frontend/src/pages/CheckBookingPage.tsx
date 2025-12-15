@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 interface BookingDetail {
   id_pemesanan: number;
@@ -219,7 +220,7 @@ export default function CheckBookingPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 font-semibold">Total Pembayaran</span>
                       <span className="text-2xl font-bold text-nature-green-600">
-                        Rp {booking.total_harga.toLocaleString('id-ID')}
+                        {formatCurrency(booking.total_harga)}
                       </span>
                     </div>
                   </div>

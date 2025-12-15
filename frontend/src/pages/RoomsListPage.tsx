@@ -4,6 +4,7 @@ import { Users, Search } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../services/api';
+import { formatCurrencyShort } from '../utils/currency';
 
 interface Room {
   id_kamar: number;
@@ -139,7 +140,7 @@ export default function RoomsListPage() {
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Mulai dari</div>
                     <span className="text-nature-green-600 font-bold text-2xl">
-                      Rp {(room.harga_permalam / 1000).toFixed(0)}K
+                      {formatCurrencyShort(room.harga_permalam)}
                     </span>
                     <span className="text-gray-500 text-sm">/malam</span>
                   </div>

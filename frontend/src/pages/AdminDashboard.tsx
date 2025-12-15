@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import { api } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 interface Wisatawan {
   id_wisatawan: number;
@@ -56,6 +57,9 @@ export default function AdminDashboard() {
         api.kamarVilla.getAll(),
         api.wisatawan.getAll(),
       ]);
+      
+      console.log('Pemesanan Data:', pemesananData);
+      console.log('Sample booking total_harga:', pemesananData[0]?.total_harga, typeof pemesananData[0]?.total_harga);
       
       setBookings(pemesananData);
       setTotalKamar(kamarData.length);
@@ -125,7 +129,7 @@ export default function AdminDashboard() {
     completed: bookings.filter((b) => b.status_pemesanan === 'completed').length,
     totalRevenue: bookings
       .filter((b) => b.status_pemesanan === 'completed')
-      .reduce((sum, b) => sum + b.total_harga, 0),
+      .reduce((sum, b) => sum + (Number(b.total_harga) || 0), 0),
     totalKamar: totalKamar,
     totalWisatawan: totalWisatawan,
   };
@@ -191,7 +195,7 @@ export default function AdminDashboard() {
               <div className="bg-gradient-to-br from-nature-green-500 to-nature-green-600 rounded-xl shadow-lg p-6 text-white">
                 <div className="text-nature-green-100 text-sm mb-2">Total Revenue</div>
                 <div className="text-3xl font-bold">
-                  Rp {stats.totalRevenue.toLocaleString('id-ID')}
+                  {formatCurrency(stats.totalRevenue)}
                 </div>
                 <div className="text-nature-green-100 text-xs mt-2">Dari booking completed</div>
               </div>
@@ -260,7 +264,7 @@ export default function AdminDashboard() {
                       {new Date(booking.tgl_checkin).toLocaleDateString('id-ID')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      Rp {booking.total_harga.toLocaleString('id-ID')}
+                      {formatCurrency(booking.total_harga)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <select
